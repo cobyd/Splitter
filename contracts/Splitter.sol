@@ -1,4 +1,4 @@
-pragma solidity ^0.4.19;
+pragma solidity ^0.4.18;
 
 contract Splitter {
     mapping(address=>uint) public balances;
@@ -29,9 +29,7 @@ contract Splitter {
     
     // requirement - whenever Alice sends ether to the contract, half of it goes to Bob and the other half to Carol
     function splitFromTransaction(address[2] to) public payable {
-        require(msg.sender != to[0]);
-        require(msg.sender != to[1]);
-        require(to[0] != to[1]);
+        validateInput(to);
         addActiveUser(to[0]);
         addActiveUser(to[1]);
         uint valueToSplit = msg.value;
@@ -45,6 +43,14 @@ contract Splitter {
         uint toSend = balances[msg.sender];
         balances[msg.sender] = 0;
         msg.sender.transfer(toSend);
+    }
+    
+    function validateInput(address[2] to) private view {
+        require(msg.sender != to[0]);
+        require(msg.sender != to[1]);
+        require(to[0] != to[1]);
+        require(to[0] != 0x00);
+        require(to[1] != 0x00);
     }
 
     // track unique list of users in case of killswitch
