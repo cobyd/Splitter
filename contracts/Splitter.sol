@@ -1,8 +1,9 @@
 pragma solidity ^0.4.19;
 
 contract Splitter {
-    mapping(address=>uint) users;
-    address owner;
+    mapping(address=>uint) public balances;
+    address[] public activeUsers;
+    address public owner;
     
     /*
     
@@ -26,36 +27,31 @@ contract Splitter {
         owner = msg.sender;
     }
     
-    // requirement - Alice can use the Web page to split her ether
-    function splitFromBalance(uint valueToSplit, address[2] to) public {
-        require(msg.sender != to[0]);
-        require(msg.sender != to[1]);
-        uint userBalance = users[msg.sender];
-        require(userBalance >= valueToSplit);
-        users[msg.sender] -= valueToSplit;
-        split(to, valueToSplit);
-    }
-    
     // requirement - whenever Alice sends ether to the contract, half of it goes to Bob and the other half to Carol
     function splitFromTransaction(address[2] to) public payable {
         require(msg.sender != to[0]);
         require(msg.sender != to[1]);
-        uint valueToSplit = msg.value;
-        split(to, valueToSplit);
-    }
-    
-    // private function that is used by splitFromBalance and splitFromTransaction
-    function split(address[2] to, uint valueToSplit) private {
         require(to[0] != to[1]);
+        addActiveUser(to[0]);
+        addActiveUser(to[1]);
+        uint valueToSplit = msg.value;
         uint half = valueToSplit / 2;
-        users[to[0]] += half;
-        users[to[1]] += half;
-        // extra 1 wei in some cases will be credited to contract owner upon killswitch
+        balances[to[0]] += half;
+        balances[to[1]] += half;
+        balances[owner] += valueToSplit % 2;
     }
     
     function withdraw() public {
-        msg.sender.transfer(users[msg.sender]);
-        users[msg.sender] = 0;
+        uint toSend = balances[msg.sender];
+        balances[msg.sender] = 0;
+        msg.sender.transfer(toSend);
+    }
+
+    // track unique list of users in case of killswitch
+    function addActiveUser(address newUser) public {
+        if (balances[newUser] == 0) {
+            activeUsers.push(newUser); 
+        }
     }
     
     // requirement - we can see the balance of the Splitter contract on the Web page
@@ -65,6 +61,7 @@ contract Splitter {
     
     // requirement - we can see the balances of Alice, Bob and Carol on the Web page
     function getUserBalance(address user) public view returns(uint) {
-        return users[user];
+        return balances[user];
     }
+
 }

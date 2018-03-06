@@ -1,2 +1,3 @@
 truffle-config.js
 truffle.js
+contracts/Splitter.1.sol
