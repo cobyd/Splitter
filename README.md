@@ -14,6 +14,6 @@ Stretch goals:
 
 - [ ] add a kill switch to the whole contract.
 - [X] make the contract a utility that can be used by David, Emma and anybody with an address to split Ether between any 2 other addresses of their own choice.
-- [ ] cover potentially bad input data.
+- [X] cover potentially bad input data.
 - [ ] rebuild the Splitter instance state only based on events.
 - [ ] do inheritance and import.
