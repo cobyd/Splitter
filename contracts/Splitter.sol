@@ -1,4 +1,4 @@
-pragma solidity ^0.4.19;
+pragma solidity ^0.4.18;
 
 import "./Stoppable.sol";
 
@@ -45,6 +45,14 @@ contract Splitter is Stoppable {
         LogWithdrawl(msg.sender,toSend,false);
         balances[msg.sender] = 0;
         msg.sender.transfer(toSend);
+    }
+    
+    function validateInput(address[2] to) private view {
+        require(msg.sender != to[0]);
+        require(msg.sender != to[1]);
+        require(to[0] != to[1]);
+        require(to[0] != 0x00);
+        require(to[1] != 0x00);
     }
 
     function forceRefund(address to) public isPaused {
