@@ -1,39 +1,37 @@
 pragma solidity ^0.4.19;
 
-contract Splitter {
+import "./Stoppable.sol";
+
+contract Splitter is Stoppable {
     mapping(address=>uint) public balances;
-    address[] public activeUsers;
-    address public owner;
     
     /*
     
     Splitter contract:
     
-    ether in -> only payable function is splitFromTransaction.  When a 
-                user calls this function, the value of the transaction
-                will be split between their given target addresses
+    ether in -> only payable function is split.  When a user calls this function, 
+                the value of the transaction will be split between their given target addresses
     
     ether out -> A user can call withdraw to cash out their balance
-                 The owner can call killswitch to cash out all users (not yet implemented)
     
-    other state changes -> splitFromBalance allows a user to split ether that is 
-                           in their balance without sending any additional ether
+    other state changes -> Splitter is Stoppable is Owned
+                           Owned contracts have an owner set on initialization as msg.sender
+                           Stoppable contracts have an 'active' flag that can be toggled with pause() and resume()
+                           Both stoppable functions are only callable by the contract owner
+                           When the contract is paused, the owner can call forceRefund() to send any user their balance
     
     */
+
+    function Splitter() public {}
+
+    event LogSplit(address indexed from, address[2] indexed to, uint value);
+    event LogWithdrawl(address indexed to, uint value, bool forced);
     
-    // requirement - make the contract a utility that can be used by David, Emma and 
-    // anybody with an address to split Ether between any 2 other addresses of their own choice
-    function Splitter() public {
-        owner = msg.sender;
-    }
-    
-    // requirement - whenever Alice sends ether to the contract, half of it goes to Bob and the other half to Carol
-    function splitFromTransaction(address[2] to) public payable {
+    function split(address[2] to) public payable isActive {
         require(msg.sender != to[0]);
         require(msg.sender != to[1]);
         require(to[0] != to[1]);
-        addActiveUser(to[0]);
-        addActiveUser(to[1]);
+        LogSplit(msg.sender,to,msg.value);
         uint valueToSplit = msg.value;
         uint half = valueToSplit / 2;
         balances[to[0]] += half;
@@ -41,27 +39,19 @@ contract Splitter {
         balances[owner] += valueToSplit % 2;
     }
     
-    function withdraw() public {
+    function withdraw() public isActive {
         uint toSend = balances[msg.sender];
+        require(toSend > 0);
+        LogWithdrawl(msg.sender,toSend,false);
         balances[msg.sender] = 0;
         msg.sender.transfer(toSend);
     }
 
-    // track unique list of users in case of killswitch
-    function addActiveUser(address newUser) public {
-        if (balances[newUser] == 0) {
-            activeUsers.push(newUser); 
-        }
+    function forceRefund(address to) public isPaused {
+        uint toSend = balances[to];
+        require(toSend > 0);
+        LogWithdrawl(to,toSend,true);
+        balances[msg.sender] = 0;
+        msg.sender.transfer(toSend);
     }
-    
-    // requirement - we can see the balance of the Splitter contract on the Web page
-    function getBalance() public view returns(uint) {
-        return this.balance;
-    }
-    
-    // requirement - we can see the balances of Alice, Bob and Carol on the Web page
-    function getUserBalance(address user) public view returns(uint) {
-        return balances[user];
-    }
-
 }
