@@ -22,7 +22,9 @@ contract Splitter is Stoppable {
     
     */
 
-    function Splitter() public {}
+    function Splitter() public {
+        active = true;
+    }
 
     event LogSplit(address indexed from, address[2] indexed to, uint value);
     event LogWithdrawl(address indexed to, uint value, bool forced);
